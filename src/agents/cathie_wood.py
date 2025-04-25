@@ -1,5 +1,6 @@
 from graph.state import AgentState, show_agent_reasoning
-from tools.api import get_financial_metrics, get_market_cap, search_line_items
+# from tools.api import get_financial_metrics, get_market_cap, search_line_items
+from tools.ds import DataSource
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
@@ -25,17 +26,19 @@ def cathie_wood_agent(state: AgentState):
     data = state["data"]
     end_date = data["end_date"]
     tickers = data["tickers"]
+    api_provider=state["metadata"]["api_provider"]
+    sapi = DataSource(source_type = api_provider)
 
     analysis_data = {}
     cw_analysis = {}
 
     for ticker in tickers:
         progress.update_status("cathie_wood_agent", ticker, "Fetching financial metrics")
-        metrics = get_financial_metrics(ticker, end_date, period="annual", limit=5)
+        metrics = sapi.get_financial_metrics(ticker, end_date, period="annual", limit=5)
 
         progress.update_status("cathie_wood_agent", ticker, "Gathering financial line items")
         # Request multiple periods of data (annual or TTM) for a more robust view.
-        financial_line_items = search_line_items(
+        financial_line_items = sapi.search_line_items(
             ticker,
             [
                 "revenue",
@@ -58,7 +61,7 @@ def cathie_wood_agent(state: AgentState):
         )
 
         progress.update_status("cathie_wood_agent", ticker, "Getting market cap")
-        market_cap = get_market_cap(ticker, end_date)
+        market_cap = sapi.get_market_cap(ticker, end_date)
 
         progress.update_status("cathie_wood_agent", ticker, "Analyzing disruptive potential")
         disruptive_analysis = analyze_disruptive_potential(metrics, financial_line_items)

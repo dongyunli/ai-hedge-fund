@@ -9,13 +9,15 @@ from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel
 
-from tools.api import (
-    get_company_news,
-    get_financial_metrics,
-    get_insider_trades,
-    get_market_cap,
-    search_line_items,
-)
+# from tools.api import (
+#     get_company_news,
+#     get_financial_metrics,
+#     get_insider_trades,
+#     get_market_cap,
+#     search_line_items,
+# )
+from tools.ds import DataSource
+
 from utils.llm import call_llm
 from utils.progress import progress
 
@@ -48,6 +50,8 @@ def michael_burry_agent(state: AgentState):  # noqa: C901  (complexity is fine h
     data = state["data"]
     end_date: str = data["end_date"]  # YYYY‑MM‑DD
     tickers: list[str] = data["tickers"]
+    api_provider=state["metadata"]["api_provider"]
+    sapi = DataSource(source_type = api_provider)
 
     # We look one year back for insider trades / news flow
     start_date = (datetime.fromisoformat(end_date) - timedelta(days=365)).date().isoformat()
@@ -60,10 +64,10 @@ def michael_burry_agent(state: AgentState):  # noqa: C901  (complexity is fine h
         # Fetch raw data
         # ------------------------------------------------------------------
         progress.update_status("michael_burry_agent", ticker, "Fetching financial metrics")
-        metrics = get_financial_metrics(ticker, end_date, period="ttm", limit=5)
+        metrics = sapi.get_financial_metrics(ticker, end_date, period="ttm", limit=5)
 
         progress.update_status("michael_burry_agent", ticker, "Fetching line items")
-        line_items = search_line_items(
+        line_items = sapi.search_line_items(
             ticker,
             [
                 "free_cash_flow",
@@ -79,13 +83,13 @@ def michael_burry_agent(state: AgentState):  # noqa: C901  (complexity is fine h
         )
 
         progress.update_status("michael_burry_agent", ticker, "Fetching insider trades")
-        insider_trades = get_insider_trades(ticker, end_date=end_date, start_date=start_date)
+        insider_trades = sapi.get_insider_trades(ticker, end_date=end_date, start_date=start_date)
 
         progress.update_status("michael_burry_agent", ticker, "Fetching company news")
-        news = get_company_news(ticker, end_date=end_date, start_date=start_date, limit=250)
+        news = sapi.get_company_news(ticker, end_date=end_date, start_date=start_date, limit=250)
 
         progress.update_status("michael_burry_agent", ticker, "Fetching market cap")
-        market_cap = get_market_cap(ticker, end_date)
+        market_cap = sapi.get_market_cap(ticker, end_date)
 
         # ------------------------------------------------------------------
         # Run sub‑analyses

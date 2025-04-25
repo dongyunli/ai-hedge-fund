@@ -1,5 +1,6 @@
 from graph.state import AgentState, show_agent_reasoning
-from tools.api import get_financial_metrics, get_market_cap, search_line_items, get_insider_trades, get_company_news
+# from tools.api import get_financial_metrics, get_market_cap, search_line_items, get_insider_trades, get_company_news
+from tools.ds import DataSource
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
@@ -22,16 +23,18 @@ def charlie_munger_agent(state: AgentState):
     data = state["data"]
     end_date = data["end_date"]
     tickers = data["tickers"]
+    api_provider=state["metadata"]["api_provider"]
+    sapi = DataSource(source_type = api_provider)
     
     analysis_data = {}
     munger_analysis = {}
     
     for ticker in tickers:
         progress.update_status("charlie_munger_agent", ticker, "Fetching financial metrics")
-        metrics = get_financial_metrics(ticker, end_date, period="annual", limit=10)  # Munger looks at longer periods
+        metrics = sapi.get_financial_metrics(ticker, end_date, period="annual", limit=10)  # Munger looks at longer periods
         
         progress.update_status("charlie_munger_agent", ticker, "Gathering financial line items")
-        financial_line_items = search_line_items(
+        financial_line_items = sapi.search_line_items(
             ticker,
             [
                 "revenue",
@@ -55,11 +58,11 @@ def charlie_munger_agent(state: AgentState):
         )
         
         progress.update_status("charlie_munger_agent", ticker, "Getting market cap")
-        market_cap = get_market_cap(ticker, end_date)
+        market_cap = sapi.get_market_cap(ticker, end_date)
         
         progress.update_status("charlie_munger_agent", ticker, "Fetching insider trades")
         # Munger values management with skin in the game
-        insider_trades = get_insider_trades(
+        insider_trades = sapi.get_insider_trades(
             ticker,
             end_date,
             # Look back 2 years for insider trading patterns
@@ -69,7 +72,7 @@ def charlie_munger_agent(state: AgentState):
         
         progress.update_status("charlie_munger_agent", ticker, "Fetching company news")
         # Munger avoids businesses with frequent negative press
-        company_news = get_company_news(
+        company_news = sapi.get_company_news(
             ticker,
             end_date,
             # Look back 1 year for news

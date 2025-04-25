@@ -1,7 +1,8 @@
 from langchain_core.messages import HumanMessage
 from graph.state import AgentState, show_agent_reasoning
 from utils.progress import progress
-from tools.api import get_prices, prices_to_df
+# from tools.api import get_prices, prices_to_df
+from tools.ds import DataSource
 import json
 
 
@@ -11,6 +12,8 @@ def risk_management_agent(state: AgentState):
     portfolio = state["data"]["portfolio"]
     data = state["data"]
     tickers = data["tickers"]
+    api_provider=state["metadata"]["api_provider"]
+    sapi = DataSource(source_type = api_provider)
 
     # Initialize risk analysis for each ticker
     risk_analysis = {}
@@ -19,7 +22,7 @@ def risk_management_agent(state: AgentState):
     for ticker in tickers:
         progress.update_status("risk_management_agent", ticker, "Analyzing price data")
 
-        prices = get_prices(
+        prices = sapi.get_prices(
             ticker=ticker,
             start_date=data["start_date"],
             end_date=data["end_date"],
@@ -29,7 +32,7 @@ def risk_management_agent(state: AgentState):
             progress.update_status("risk_management_agent", ticker, "Failed: No price data found")
             continue
 
-        prices_df = prices_to_df(prices)
+        prices_df = sapi.prices_to_df(prices)
 
         progress.update_status("risk_management_agent", ticker, "Calculating position limits")
 

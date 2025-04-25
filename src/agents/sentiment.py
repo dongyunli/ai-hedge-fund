@@ -5,7 +5,8 @@ import pandas as pd
 import numpy as np
 import json
 
-from tools.api import get_insider_trades, get_company_news
+# from tools.api import get_insider_trades, get_company_news
+from tools.ds import DataSource
 
 
 ##### Sentiment Agent #####
@@ -14,6 +15,8 @@ def sentiment_agent(state: AgentState):
     data = state.get("data", {})
     end_date = data.get("end_date")
     tickers = data.get("tickers")
+    api_provider=state["metadata"]["api_provider"]
+    sapi = DataSource(source_type = api_provider)
 
     # Initialize sentiment analysis for each ticker
     sentiment_analysis = {}
@@ -22,7 +25,7 @@ def sentiment_agent(state: AgentState):
         progress.update_status("sentiment_agent", ticker, "Fetching insider trades")
 
         # Get the insider trades
-        insider_trades = get_insider_trades(
+        insider_trades = sapi.get_insider_trades(
             ticker=ticker,
             end_date=end_date,
             limit=1000,
@@ -37,7 +40,7 @@ def sentiment_agent(state: AgentState):
         progress.update_status("sentiment_agent", ticker, "Fetching company news")
 
         # Get the company news
-        company_news = get_company_news(ticker, end_date, limit=100)
+        company_news = sapi.get_company_news(ticker, end_date, limit=100)
 
         # Get the sentiment from the company news
         sentiment = pd.Series([n.sentiment for n in company_news]).dropna()

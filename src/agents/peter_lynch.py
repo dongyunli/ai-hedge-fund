@@ -1,17 +1,18 @@
 from graph.state import AgentState, show_agent_reasoning
-from tools.api import (
-    get_financial_metrics,
-    get_market_cap,
-    search_line_items,
-    get_insider_trades,
-    get_company_news,
-    get_prices,
-)
+# from tools.api import (
+#     get_financial_metrics,
+#     get_market_cap,
+#     search_line_items,
+#     get_insider_trades,
+#     get_company_news,
+#     get_prices,
+# )
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 import json
 from typing_extensions import Literal
+from tools.ds import DataSource
 from utils.progress import progress
 from utils.llm import call_llm
 
@@ -44,17 +45,19 @@ def peter_lynch_agent(state: AgentState):
     start_date = data["start_date"]
     end_date = data["end_date"]
     tickers = data["tickers"]
+    api_provider=state["metadata"]["api_provider"]
+    sapi = DataSource(source_type = api_provider)
 
     analysis_data = {}
     lynch_analysis = {}
 
     for ticker in tickers:
         progress.update_status("peter_lynch_agent", ticker, "Fetching financial metrics")
-        metrics = get_financial_metrics(ticker, end_date, period="annual", limit=5)
+        metrics = sapi.get_financial_metrics(ticker, end_date, period="annual", limit=5)
 
         progress.update_status("peter_lynch_agent", ticker, "Gathering financial line items")
         # Relevant line items for Peter Lynch's approach
-        financial_line_items = search_line_items(
+        financial_line_items = sapi.search_line_items(
             ticker,
             [
                 "revenue",
@@ -76,16 +79,16 @@ def peter_lynch_agent(state: AgentState):
         )
 
         progress.update_status("peter_lynch_agent", ticker, "Getting market cap")
-        market_cap = get_market_cap(ticker, end_date)
+        market_cap = sapi.get_market_cap(ticker, end_date)
 
         progress.update_status("peter_lynch_agent", ticker, "Fetching insider trades")
-        insider_trades = get_insider_trades(ticker, end_date, start_date=None, limit=50)
+        insider_trades = sapi.get_insider_trades(ticker, end_date, start_date=None, limit=50)
 
         progress.update_status("peter_lynch_agent", ticker, "Fetching company news")
-        company_news = get_company_news(ticker, end_date, start_date=None, limit=50)
+        company_news = sapi.get_company_news(ticker, end_date, start_date=None, limit=50)
 
         progress.update_status("peter_lynch_agent", ticker, "Fetching recent price data for reference")
-        prices = get_prices(ticker, start_date=start_date, end_date=end_date)
+        prices = sapi.get_prices(ticker, start_date=start_date, end_date=end_date)
 
         # Perform sub-analyses:
         progress.update_status("peter_lynch_agent", ticker, "Analyzing growth")

@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from langchain_ollama import ChatOllama
 from enum import Enum
 from pydantic import BaseModel
-from typing import Tuple
+from typing import Tuple, List, Dict, Any, Optional
 
 
 class ModelProvider(str, Enum):
@@ -19,7 +19,10 @@ class ModelProvider(str, Enum):
     OPENAI = "OpenAI"
     OLLAMA = "Ollama"
 
-
+class APIProvider(str, Enum):
+    """Enum for supported API providers"""
+    FINANCE_DATASETS = "financialdatasets"
+    AKSHARE = "akshare"
 
 class LLMModel(BaseModel):
     """Represents an LLM model configuration"""
@@ -171,6 +174,8 @@ LLM_ORDER = [model.to_choice_tuple() for model in AVAILABLE_MODELS]
 
 # Create Ollama LLM_ORDER separately
 OLLAMA_LLM_ORDER = [model.to_choice_tuple() for model in OLLAMA_MODELS]
+
+API_PROVIDER = [APIProvider.FINANCE_DATASETS,APIProvider.AKSHARE]
 
 def get_model_info(model_name: str) -> LLMModel | None:
     """Get model information by model_name"""

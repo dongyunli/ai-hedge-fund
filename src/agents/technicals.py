@@ -8,7 +8,8 @@ import json
 import pandas as pd
 import numpy as np
 
-from tools.api import get_prices, prices_to_df
+# from tools.api import get_prices, prices_to_df
+from tools.ds import DataSource
 from utils.progress import progress
 
 
@@ -26,6 +27,8 @@ def technical_analyst_agent(state: AgentState):
     start_date = data["start_date"]
     end_date = data["end_date"]
     tickers = data["tickers"]
+    api_provider=state["metadata"]["api_provider"]
+    sapi = DataSource(source_type = api_provider)
 
     # Initialize analysis for each ticker
     technical_analysis = {}
@@ -34,7 +37,7 @@ def technical_analyst_agent(state: AgentState):
         progress.update_status("technical_analyst_agent", ticker, "Analyzing price data")
 
         # Get the historical price data
-        prices = get_prices(
+        prices = sapi.get_prices(
             ticker=ticker,
             start_date=start_date,
             end_date=end_date,
@@ -45,7 +48,7 @@ def technical_analyst_agent(state: AgentState):
             continue
 
         # Convert prices to a DataFrame
-        prices_df = prices_to_df(prices)
+        prices_df = sapi.prices_to_df(prices)
 
         progress.update_status("technical_analyst_agent", ticker, "Calculating trend signals")
         trend_signals = calculate_trend_signals(prices_df)

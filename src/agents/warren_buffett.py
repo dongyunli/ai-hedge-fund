@@ -4,7 +4,8 @@ from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
 import json
 from typing_extensions import Literal
-from tools.api import get_financial_metrics, get_market_cap, search_line_items
+# from tools.api import get_financial_metrics, get_market_cap, search_line_items
+from tools.ds import DataSource
 from utils.llm import call_llm
 from utils.progress import progress
 
@@ -20,6 +21,8 @@ def warren_buffett_agent(state: AgentState):
     data = state["data"]
     end_date = data["end_date"]
     tickers = data["tickers"]
+    api_provider=state["metadata"]["api_provider"]
+    sapi = DataSource(source_type = api_provider)
 
     # Collect all analysis for LLM reasoning
     analysis_data = {}
@@ -28,10 +31,10 @@ def warren_buffett_agent(state: AgentState):
     for ticker in tickers:
         progress.update_status("warren_buffett_agent", ticker, "Fetching financial metrics")
         # Fetch required data
-        metrics = get_financial_metrics(ticker, end_date, period="ttm", limit=5)
+        metrics = sapi.get_financial_metrics(ticker, end_date, period="ttm", limit=5)
 
         progress.update_status("warren_buffett_agent", ticker, "Gathering financial line items")
-        financial_line_items = search_line_items(
+        financial_line_items = sapi.search_line_items(
             ticker,
             [
                 "capital_expenditure",
@@ -48,7 +51,7 @@ def warren_buffett_agent(state: AgentState):
 
         progress.update_status("warren_buffett_agent", ticker, "Getting market cap")
         # Get current market cap
-        market_cap = get_market_cap(ticker, end_date)
+        market_cap = sapi.get_market_cap(ticker, end_date)
 
         progress.update_status("warren_buffett_agent", ticker, "Analyzing fundamentals")
         # Analyze fundamentals

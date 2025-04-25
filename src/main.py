@@ -8,10 +8,11 @@ import questionary
 from agents.portfolio_manager import portfolio_management_agent
 from agents.risk_manager import risk_management_agent
 from graph.state import AgentState
+from tools.ds import DataSource
 from utils.display import print_trading_output
 from utils.analysts import ANALYST_ORDER, get_analyst_nodes
 from utils.progress import progress
-from llm.models import LLM_ORDER, OLLAMA_LLM_ORDER, get_model_info, ModelProvider
+from llm.models import LLM_ORDER, OLLAMA_LLM_ORDER, get_model_info, ModelProvider, API_PROVIDER
 from utils.ollama import ensure_ollama_and_model
 
 import argparse
@@ -41,6 +42,7 @@ def parse_hedge_fund_response(response):
         return None
 
 
+
 ##### Run the Hedge Fund #####
 def run_hedge_fund(
     tickers: list[str],
@@ -51,6 +53,7 @@ def run_hedge_fund(
     selected_analysts: list[str] = [],
     model_name: str = "gpt-4o",
     model_provider: str = "OpenAI",
+    api_provider: str = "financialdatasets"
 ):
     # Start progress tracking
     progress.start()
@@ -81,6 +84,7 @@ def run_hedge_fund(
                     "show_reasoning": show_reasoning,
                     "model_name": model_name,
                     "model_provider": model_provider,
+                    "api_provider": api_provider,
                 },
             },
         )
@@ -236,6 +240,18 @@ if __name__ == "__main__":
                 model_provider = "Unknown"
                 print(f"\nSelected model: {Fore.GREEN + Style.BRIGHT}{model_choice}{Style.RESET_ALL}\n")
 
+    # API Provider Selection
+    api_provider = questionary.select(
+            "Select your API Provider :",
+            choices=[questionary.Choice(display, value=value) for display, value, _ in API_PROVIDER],
+            style=questionary.Style([
+                ("selected", "fg:green bold"),
+                ("pointer", "fg:green bold"),
+                ("highlighted", "fg:green"),
+                ("answer", "fg:green bold"),
+            ])
+        ).ask()
+    
     # Create the workflow with selected analysts
     workflow = create_workflow(selected_analysts)
     app = workflow.compile()
@@ -304,5 +320,6 @@ if __name__ == "__main__":
         selected_analysts=selected_analysts,
         model_name=model_choice,
         model_provider=model_provider,
+        api_provider=api_provider,
     )
     print_trading_output(result)

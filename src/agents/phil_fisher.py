@@ -1,11 +1,12 @@
 from graph.state import AgentState, show_agent_reasoning
-from tools.api import (
-    get_financial_metrics,
-    get_market_cap,
-    search_line_items,
-    get_insider_trades,
-    get_company_news,
-)
+# from tools.api import (
+#     get_financial_metrics,
+#     get_market_cap,
+#     search_line_items,
+#     get_insider_trades,
+#     get_company_news,
+# )
+from tools.ds import DataSource
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage
 from pydantic import BaseModel
@@ -38,13 +39,15 @@ def phil_fisher_agent(state: AgentState):
     start_date = data["start_date"]
     end_date = data["end_date"]
     tickers = data["tickers"]
+    api_provider=state["metadata"]["api_provider"]
+    sapi = DataSource(source_type = api_provider)
 
     analysis_data = {}
     fisher_analysis = {}
 
     for ticker in tickers:
         progress.update_status("phil_fisher_agent", ticker, "Fetching financial metrics")
-        metrics = get_financial_metrics(ticker, end_date, period="annual", limit=5)
+        metrics = sapi.get_financial_metrics(ticker, end_date, period="annual", limit=5)
 
         progress.update_status("phil_fisher_agent", ticker, "Gathering financial line items")
         # Include relevant line items for Phil Fisher's approach:
@@ -52,7 +55,7 @@ def phil_fisher_agent(state: AgentState):
         #   - Margins & Stability: operating_income, operating_margin, gross_margin
         #   - Management Efficiency & Leverage: total_debt, shareholders_equity, free_cash_flow
         #   - Valuation: net_income, free_cash_flow (for P/E, P/FCF), ebit, ebitda
-        financial_line_items = search_line_items(
+        financial_line_items = sapi.search_line_items(
             ticker,
             [
                 "revenue",
@@ -75,13 +78,13 @@ def phil_fisher_agent(state: AgentState):
         )
 
         progress.update_status("phil_fisher_agent", ticker, "Getting market cap")
-        market_cap = get_market_cap(ticker, end_date)
+        market_cap = sapi.get_market_cap(ticker, end_date)
 
         progress.update_status("phil_fisher_agent", ticker, "Fetching insider trades")
-        insider_trades = get_insider_trades(ticker, end_date, start_date=None, limit=50)
+        insider_trades = sapi.get_insider_trades(ticker, end_date, start_date=None, limit=50)
 
         progress.update_status("phil_fisher_agent", ticker, "Fetching company news")
-        company_news = get_company_news(ticker, end_date, start_date=None, limit=50)
+        company_news = sapi.get_company_news(ticker, end_date, start_date=None, limit=50)
 
         progress.update_status("phil_fisher_agent", ticker, "Analyzing growth & quality")
         growth_quality = analyze_fisher_growth_quality(financial_line_items)

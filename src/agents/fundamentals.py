@@ -3,7 +3,8 @@ from graph.state import AgentState, show_agent_reasoning
 from utils.progress import progress
 import json
 
-from tools.api import get_financial_metrics
+# from tools.api import get_financial_metrics
+from tools.ds import DataSource
 
 
 ##### Fundamental Agent #####
@@ -12,6 +13,8 @@ def fundamentals_agent(state: AgentState):
     data = state["data"]
     end_date = data["end_date"]
     tickers = data["tickers"]
+    api_provider=state["metadata"]["api_provider"]
+    sapi = DataSource(source_type = api_provider)
 
     # Initialize fundamental analysis for each ticker
     fundamental_analysis = {}
@@ -20,7 +23,7 @@ def fundamentals_agent(state: AgentState):
         progress.update_status("fundamentals_agent", ticker, "Fetching financial metrics")
 
         # Get the financial metrics
-        financial_metrics = get_financial_metrics(
+        financial_metrics = sapi.get_financial_metrics(
             ticker=ticker,
             end_date=end_date,
             period="ttm",

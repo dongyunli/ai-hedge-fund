@@ -1,5 +1,15 @@
 # AI Hedge Fund
 
+原有框架不支持A股相关分析，因此进行了修改，引入AsShareData，支持A股市场分析。
+## 功能
+1. 支持A股市场分析
+2. 支持A股市场回测
+## 注意事项
+1. 由于AsShareData的API限制，回测数据只能从2020年1月1日开始
+2. 回测数据只能从2020年1月1日开始
+3. 使用时请注意API的选择使用，”financialdatasets“为原有框架使用的API，支持美股市场分析，”akshare“为新引入的API，支持A股市场分析
+##
+
 This is a proof of concept for an AI-powered hedge fund.  The goal of this project is to explore the use of AI to make trading decisions.  This project is for **educational** purposes only and is not intended for real trading or investment.
 
 This system employs several agents working together:

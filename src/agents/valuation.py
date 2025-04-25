@@ -12,11 +12,13 @@ from langchain_core.messages import HumanMessage
 from graph.state import AgentState, show_agent_reasoning
 from utils.progress import progress
 
-from tools.api import (
-    get_financial_metrics,
-    get_market_cap,
-    search_line_items,
-)
+# from tools.api import (
+#     get_financial_metrics,
+#     get_market_cap,
+#     search_line_items,
+# )
+from tools.ds import DataSource
+
 
 def valuation_agent(state: AgentState):
     """Run valuation across tickers and write signals back to `state`."""
@@ -24,6 +26,8 @@ def valuation_agent(state: AgentState):
     data = state["data"]
     end_date = data["end_date"]
     tickers = data["tickers"]
+    api_provider=state["metadata"]["api_provider"]
+    sapi = DataSource(source_type = api_provider)
 
     valuation_analysis: dict[str, dict] = {}
 
@@ -31,7 +35,7 @@ def valuation_agent(state: AgentState):
         progress.update_status("valuation_agent", ticker, "Fetching financial data")
 
         # --- Historical financial metrics (pull 8 latest TTM snapshots for medians) ---
-        financial_metrics = get_financial_metrics(
+        financial_metrics = sapi.get_financial_metrics(
             ticker=ticker,
             end_date=end_date,
             period="ttm",
@@ -44,7 +48,7 @@ def valuation_agent(state: AgentState):
 
         # --- Fine‑grained line‑items (need two periods to calc WC change) ---
         progress.update_status("valuation_agent", ticker, "Gathering line items")
-        line_items = search_line_items(
+        line_items = sapi.search_line_items(
             ticker=ticker,
             line_items=[
                 "free_cash_flow",
@@ -99,7 +103,7 @@ def valuation_agent(state: AgentState):
         # ------------------------------------------------------------------
         # Aggregate & signal
         # ------------------------------------------------------------------
-        market_cap = get_market_cap(ticker, end_date)
+        market_cap = sapi.get_market_cap(ticker, end_date)
         if not market_cap:
             progress.update_status("valuation_agent", ticker, "Failed: Market cap unavailable")
             continue
